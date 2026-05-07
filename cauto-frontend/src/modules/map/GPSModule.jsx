@@ -81,7 +81,7 @@ import { useApi } from "@/hooks/useApi";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useDebounce } from "@/hooks/useDebounce";
-import { distanceM, fmtDist, fmtTime, NAV_ARROW } from "@/utils/geoUtils";
+import { distanceM, fmtDist, fmtTime, NAV_ARROW, reverseGeocode } from "@/utils/geoUtils";
 import Spinner from "@/shared/ui/Spinner";
 import ApiError from "@/shared/ui/ApiError";
 import TabBar from "@/shared/ui/TabBar";
@@ -212,6 +212,12 @@ function GPSModule({onSelectVehicle,mode="live"}){
   const [searchLoading,setSearchLoading]=useState(false);
   const [searchFocused,setSearchFocused]=useState(false);
   const debouncedSearchAddr=useDebounce(searchAddr,350);
+  // ── Context menu ──────────────────────────────────────────────────────────
+  const [ctxMenu,setCtxMenu]=useState(null); // {lat,lng,x,y,address}
+  const [ctxNote,setCtxNote]=useState("");
+  const [ctxAltro,setCtxAltro]=useState(false);
+  const [ctxSending,setCtxSending]=useState(false);
+  const [ctxDone,setCtxDone]=useState(null); // "ok"|"err"
   const [selectedSearchResult,setSelectedSearchResult]=useState(null); // {lat,lng,address}
   const [segTerritorio,setSegTerritorio]=useState({tipo:"",note:""});
   const [segTerritorioMsg,setSegTerritorioMsg]=useState(null);
@@ -372,6 +378,34 @@ function GPSModule({onSelectVehicle,mode="live"}){
     }catch{}
     setNavPreviewLoading(false);
   },[myPos,auth?.token,navCosting]);
+
+  // ── Context-menu handlers ─────────────────────────────────────────────────
+  const openCtxMenu=useCallback(async(lat,lng,x,y)=>{
+    setCtxMenu({lat,lng,x,y,address:null});
+    setCtxNote("");setCtxAltro(false);setCtxDone(null);
+    const addr=await reverseGeocode(lat,lng);
+    setCtxMenu(m=>m?{...m,address:addr}:null);
+  },[]);
+
+  const closeCtxMenu=useCallback(()=>{
+    setCtxMenu(null);setCtxNote("");setCtxAltro(false);setCtxDone(null);
+  },[]);
+
+  const quickSegnala=useCallback(async(tipo,note="")=>{
+    if(!ctxMenu)return;
+    setCtxSending(true);
+    try{
+      const res=await fetch(`${API}/segnalazioni-territorio`,{
+        method:"POST",
+        headers:{Authorization:`Bearer ${auth?.token}`,"Content-Type":"application/json"},
+        body:JSON.stringify({tipo,note:note||null,address:ctxMenu.address||`${ctxMenu.lat.toFixed(5)},${ctxMenu.lng.toFixed(5)}`,lat:ctxMenu.lat,lng:ctxMenu.lng}),
+      });
+      const d=await res.json();
+      setCtxDone(d.ok?"ok":"err");
+      if(d.ok)setTimeout(closeCtxMenu,1400);
+    }catch{setCtxDone("err");}
+    setCtxSending(false);
+  },[ctxMenu,auth?.token,closeCtxMenu]);
 
   // Auto-advance nav step as user moves
   useEffect(()=>{
@@ -1001,7 +1035,7 @@ function GPSModule({onSelectVehicle,mode="live"}){
             zones={tab==="live"?zones.filter(z=>visibleZones[z.id]!==false):[]} punti={tab==="live"?punti.filter(p=>visiblePunti[p.id]!==false):[]}
             editMode={editorActive} editWaypoints={editWaypoints} editColor={meta.color}
             snappedSegments={snappedSegments} snapMode={snapMode}
-            onMapClick={handleMapClick} onWaypointMove={handleWaypointMove} onWaypointDelete={handleWaypointDelete} onPathClick={handleInsertControlPoint}
+            onMapClick={handleMapClick} onMapRightClick={tab==="live"?openCtxMenu:null} onWaypointMove={handleWaypointMove} onWaypointDelete={handleWaypointDelete} onPathClick={handleInsertControlPoint}
             searchMarkerRef={tab==="live"?liveMapRef:null}
             annotations={visibleAnnotations}
             cdr={tab==="live"?cdr.filter(c=>c.lat&&c.lng):[]}
@@ -1314,6 +1348,121 @@ function GPSModule({onSelectVehicle,mode="live"}){
               )}
               {!myPos&&<div style={{fontSize:12,color:T.orange,marginTop:8,textAlign:"center"}}>⚠ Attiva il GPS prima di navigare</div>}
             </div>
+          )}
+
+          {/* ── Contextual right-click menu ── */}
+          {ctxMenu&&(
+            <>
+              <div onClick={closeCtxMenu} style={{position:"fixed",inset:0,zIndex:3000}}/>
+              <div onClick={e=>e.stopPropagation()} style={{
+                position:"fixed",
+                left:Math.min(ctxMenu.x,window.innerWidth-230),
+                top:Math.min(ctxMenu.y,window.innerHeight-320),
+                zIndex:3001,
+                background:"rgba(13,27,42,0.97)",
+                border:`1px solid ${T.border}`,
+                borderRadius:12,
+                padding:14,
+                width:220,
+                backdropFilter:"blur(10px)",
+                boxShadow:"0 6px 28px rgba(0,0,0,0.6)",
+                fontFamily:T.font,
+              }}>
+                {/* Address header */}
+                <div style={{fontSize:11,color:T.textSub,marginBottom:10,lineHeight:1.4,wordBreak:"break-word"}}>
+                  {ctxMenu.address
+                    ? <><span style={{opacity:0.5}}>📍</span> {ctxMenu.address}</>
+                    : <span style={{opacity:0.4}}>Caricamento indirizzo…</span>}
+                </div>
+                <div style={{height:1,background:T.border,marginBottom:10}}/>
+
+                {/* Segnalazione buttons */}
+                {ctxDone==="ok"&&(
+                  <div style={{textAlign:"center",padding:"14px 0",color:"#4ade80",fontSize:13,fontWeight:700}}>✓ Segnalazione inviata</div>
+                )}
+                {ctxDone==="err"&&(
+                  <div style={{textAlign:"center",padding:"8px 0",color:T.orange,fontSize:12}}>⚠ Errore, riprova</div>
+                )}
+                {!ctxDone&&(
+                  <>
+                    <div style={{fontSize:10,color:T.textDim,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:7}}>Segnala</div>
+                    {[
+                      ["mancata_raccolta","🚛","Mancata raccolta"],
+                      ["abbandono","🗑️","Abbandono rifiuti"],
+                      ["da_pulire","🧹","Da pulire"],
+                    ].map(([tipo,ico,label])=>(
+                      <button key={tipo} disabled={ctxSending} onClick={()=>quickSegnala(tipo)} style={{
+                        display:"flex",alignItems:"center",gap:9,width:"100%",padding:"8px 10px",marginBottom:5,
+                        background:"transparent",border:`1px solid ${T.border}`,borderRadius:8,
+                        color:T.text,cursor:ctxSending?"not-allowed":"pointer",fontSize:12,fontFamily:T.font,
+                        textAlign:"left",transition:"background 0.15s",
+                      }}
+                        onMouseEnter={e=>e.currentTarget.style.background=T.navActive}
+                        onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                        <span style={{fontSize:15}}>{ico}</span>{label}
+                      </button>
+                    ))}
+
+                    {/* Altro — expandable */}
+                    {!ctxAltro?(
+                      <button disabled={ctxSending} onClick={()=>setCtxAltro(true)} style={{
+                        display:"flex",alignItems:"center",gap:9,width:"100%",padding:"8px 10px",marginBottom:5,
+                        background:"transparent",border:`1px solid ${T.border}`,borderRadius:8,
+                        color:T.text,cursor:"pointer",fontSize:12,fontFamily:T.font,textAlign:"left",transition:"background 0.15s",
+                      }}
+                        onMouseEnter={e=>e.currentTarget.style.background=T.navActive}
+                        onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                        <span style={{fontSize:15}}>✏️</span>Altro…
+                      </button>
+                    ):(
+                      <div style={{marginBottom:5}}>
+                        <textarea value={ctxNote} onChange={e=>setCtxNote(e.target.value)}
+                          placeholder="Descrivi il problema…" rows={3}
+                          style={{width:"100%",background:T.bg,border:`1px solid ${T.border}`,borderRadius:8,color:T.text,
+                            padding:"7px 9px",fontSize:12,fontFamily:T.font,resize:"vertical",outline:"none",boxSizing:"border-box",marginBottom:6}}/>
+                        <button disabled={ctxSending||!ctxNote.trim()} onClick={()=>quickSegnala("altro",ctxNote)} style={{
+                          width:"100%",padding:"7px",background:ctxSending?T.bg:T.navActive,
+                          border:`1px solid ${T.blue}66`,borderRadius:7,color:T.blue,
+                          cursor:(ctxSending||!ctxNote.trim())?"not-allowed":"pointer",fontSize:12,fontWeight:600,fontFamily:T.font,
+                        }}>
+                          {ctxSending?"Invio…":"Invia segnalazione"}
+                        </button>
+                      </div>
+                    )}
+
+                    <div style={{height:1,background:T.border,margin:"8px 0"}}/>
+
+                    {/* Navigate here */}
+                    <button onClick={()=>{
+                      if(ctxMenu) previewRoute({lat:ctxMenu.lat,lng:ctxMenu.lng,display_name:ctxMenu.address||`${ctxMenu.lat.toFixed(5)},${ctxMenu.lng.toFixed(5)}`});
+                      closeCtxMenu();
+                    }} style={{
+                      display:"flex",alignItems:"center",gap:9,width:"100%",padding:"8px 10px",marginBottom:5,
+                      background:"transparent",border:`1px solid ${T.border}`,borderRadius:8,
+                      color:T.text,cursor:"pointer",fontSize:12,fontFamily:T.font,textAlign:"left",transition:"background 0.15s",
+                    }}
+                      onMouseEnter={e=>e.currentTarget.style.background=T.navActive}
+                      onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                      <span style={{fontSize:15}}>🧭</span>Naviga qui
+                    </button>
+
+                    {/* Copy coordinates */}
+                    <button onClick={()=>{
+                      navigator.clipboard.writeText(`${ctxMenu.lat.toFixed(6)}, ${ctxMenu.lng.toFixed(6)}`);
+                      closeCtxMenu();
+                    }} style={{
+                      display:"flex",alignItems:"center",gap:9,width:"100%",padding:"8px 10px",
+                      background:"transparent",border:`1px solid ${T.border}`,borderRadius:8,
+                      color:T.text,cursor:"pointer",fontSize:12,fontFamily:T.font,textAlign:"left",transition:"background 0.15s",
+                    }}
+                      onMouseEnter={e=>e.currentTarget.style.background=T.navActive}
+                      onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                      <span style={{fontSize:15}}>📋</span>Copia coordinate
+                    </button>
+                  </>
+                )}
+              </div>
+            </>
           )}
 
           {/* ── PDF Export button (hidden on mobile fullscreen) ── */}
