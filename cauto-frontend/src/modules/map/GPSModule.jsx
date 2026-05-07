@@ -266,7 +266,7 @@ function GPSModule({onSelectVehicle,mode="live"}){
     cdrGeoAbortRef.current=new AbortController();
     setCdrGeoLoading(true);
     try{
-      const res=await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1&lang=it`,{signal:cdrGeoAbortRef.current.signal});
+      const res=await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1&lang=default`,{signal:cdrGeoAbortRef.current.signal});
       const data=await res.json();
       if(data.features?.length>0){const r=photonToNominatim(data.features[0]);setCdrMeta(m=>({...m,lat:parseFloat(r.lat),lng:parseFloat(r.lon)}));}
     }catch(e){if(e.name!=="AbortError")setCdrMeta(m=>({...m,lat:null,lng:null}));}
@@ -281,7 +281,7 @@ function GPSModule({onSelectVehicle,mode="live"}){
     setNavDestLoading(true);
     try{
       const lb=myPos?`&lat=${myPos[0]}&lon=${myPos[1]}`:"";
-      const url=`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=8&lang=it${lb}`;
+      const url=`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=8&lang=default${lb}`;
       const r=await fetch(url,{signal:navAbortRef.current.signal});
       const d=await r.json();
       if(!navAbortRef.current?.signal.aborted)setNavDestResults((d.features||[]).map(photonToNominatim));
@@ -342,7 +342,7 @@ function GPSModule({onSelectVehicle,mode="live"}){
     const signal=nominatimAbortRef.current.signal;
     setSearchLoading(true);
     try{
-      const res=await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=it`,{signal});
+      const res=await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=default`,{signal});
       const data=await res.json();
       if(!signal.aborted) setSearchResults((data.features||[]).map(photonToNominatim));
     }catch(e){ if(e.name!=="AbortError") setSearchResults([]); }
