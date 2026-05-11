@@ -8,6 +8,10 @@ const workshopService = {
     return workshopRepo.findAll();
   },
 
+  getOrderById(id) {
+    return workshopRepo.findById(id) || null;
+  },
+
   updateOrder(id, { status, mechanic, eta, notes }) {
     const updates = {};
     if (status   !== undefined) {

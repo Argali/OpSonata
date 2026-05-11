@@ -74,6 +74,7 @@ app.use("/api/reports",     require("./routes/reports"));
 app.use("/api/superadmin",  require("./routes/superadmin"));
 app.use("/api/bugs",        require("./routes/bugs"));
 app.use("/api/planning",    require("./routes/planning"));
+app.use("/api/audit-logs",  require("./routes/auditLogs"));
 
 // Centralized error handler — must be registered AFTER all routes
 app.use(errorHandler);
