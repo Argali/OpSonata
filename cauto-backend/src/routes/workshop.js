@@ -8,5 +8,8 @@ router.get  ("/orders",     requireAuth, requirePerm("workshop", "view"), ctrl.g
 router.patch("/orders/:id", requireAuth, requirePerm("workshop", "edit"), ctrl.updateOrder);
 router.get  ("/ponti",      requireAuth, ctrl.getPonti);
 router.put  ("/ponti",      requireAuth, requireAnyRole("fleet_manager", "company_admin"), ctrl.updatePonti);
+router.get  ("/planning",   requireAuth, requirePerm("workshop", "view"), ctrl.getPlanning);
+router.post ("/planning",   requireAuth, requirePerm("workshop", "edit"), ctrl.addAssignment);
+router.delete("/planning/:id", requireAuth, requirePerm("workshop", "edit"), ctrl.removeAssignment);
 
 module.exports = router;

@@ -1,6 +1,7 @@
 const workshopService  = require("../services/workshopService");
 const { logAudit }     = require("../services/auditLogService");
 const tenantRepo       = require("../repositories/tenantRepository");
+const planningStore    = require("../data/pontiPlanning");
 
 const workshopController = {
   getOrders(_req, res, next) {
@@ -23,6 +24,40 @@ const workshopController = {
       const updated = tenantRepo.updatePonti(req.tenant.id, clean);
       if (!updated) return res.status(404).json({ ok: false, error: "Tenant non trovato" });
       res.json({ ok: true, data: updated.ponti });
+    } catch (err) { next(err); }
+  },
+
+  getPlanning(req, res, next) {
+    try {
+      const { date } = req.query;
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date))
+        return res.status(400).json({ ok: false, error: "Parametro date richiesto (YYYY-MM-DD)" });
+      res.json({ ok: true, data: planningStore.getByTenantAndDate(req.tenant.id, date) });
+    } catch (err) { next(err); }
+  },
+
+  addAssignment(req, res, next) {
+    try {
+      const { orderId, ponte, date, startHour, duration } = req.body;
+      if (!orderId || !ponte || !date || startHour == null)
+        return res.status(400).json({ ok: false, error: "Campi obbligatori: orderId, ponte, date, startHour" });
+      const entry = planningStore.add({
+        tenantId:  req.tenant.id,
+        orderId,
+        ponte,
+        date,
+        startHour: Number(startHour),
+        duration:  Number(duration) || 2,
+      });
+      res.status(201).json({ ok: true, data: entry });
+    } catch (err) { next(err); }
+  },
+
+  removeAssignment(req, res, next) {
+    try {
+      const removed = planningStore.remove(req.params.id, req.tenant.id);
+      if (!removed) return res.status(404).json({ ok: false, error: "Assegnazione non trovata" });
+      res.json({ ok: true });
     } catch (err) { next(err); }
   },
 

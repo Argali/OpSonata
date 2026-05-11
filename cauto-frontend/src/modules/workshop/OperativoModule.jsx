@@ -6,6 +6,7 @@ import T from "@/theme";
 import TabBar from "@/shared/ui/TabBar";
 import WorkshopModule from "@/modules/workshop/WorkshopModule";
 import SegnalazioniModule from "@/modules/workshop/SegnalazioniModule";
+import PontiPlannerModule from "@/modules/workshop/PontiPlannerModule";
 
 function OperativoModule(){
   const {can}=usePerms();
@@ -22,6 +23,7 @@ function OperativoModule(){
   const tabs=[
     can("workshop")&&{id:"workshop",label:"Ordini Officina",icon:"M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"},
     {id:"segnalazioni",label:"Segnalazioni",icon:"M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01",badge:openCount},
+    can("workshop")&&{id:"planner",label:"Pianificazione Ponti",icon:"M8 6h13 M8 12h13 M8 18h13 M3 6h.01 M3 12h.01 M3 18h.01"},
   ].filter(Boolean);
 
   // make sure active tab is valid
@@ -32,6 +34,7 @@ function OperativoModule(){
       <TabBar tabs={tabs} active={activeTab} onChange={setActiveTab}/>
       {activeTab==="workshop"&&can("workshop")&&<WorkshopModule/>}
       {activeTab==="segnalazioni"&&<SegnalazioniModule/>}
+      {activeTab==="planner"&&can("workshop")&&<PontiPlannerModule/>}
     </div>
   );
 }
