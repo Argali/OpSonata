@@ -266,7 +266,7 @@ export default function Dashboard() {
           <FleetLogo size={32} />
           {sidebarOpen && (
             <div style={{ minWidth: 0, opacity: sidebarOpen ? 1 : 0, transition: "opacity 140ms" }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: T.text, letterSpacing: -0.3, whiteSpace: "nowrap" }}>Fleet<span style={{ color: T.green }}>CC</span></div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: T.text, letterSpacing: -0.3, whiteSpace: "nowrap" }}><span style={{ color: T.green }}>Op</span>Watch</div>
               <div style={{ fontSize: 9, color: T.textDim, letterSpacing: 1.2, textTransform: "uppercase", marginTop: 1 }}>Command Center</div>
             </div>
           )}
