@@ -75,8 +75,9 @@ export const roleLabel = {
 export const moduleLabel = {
   gps: "GPS Live", navigation: "Navigazione", foto_timbrata: "Foto timbrata",
   cdr: "Schede CDR", zone: "Zone", punti: "Punti", percorsi: "Percorsi",
-  pdf_export: "Export PDF", workshop: "Officina", fuel: "Carburante",
-  suppliers: "Fornitori", costs: "Costi", admin: "Admin",
+  pdf_export: "Export PDF", workshop: "Ordini Officina", segnalazioni: "Segnalazioni",
+  fuel: "Carburante", suppliers: "Fornitori", costs: "Costi",
+  planning: "Pianificatore", territorio: "Territorio", admin: "Admin",
 };
 
 export const levelColor = {

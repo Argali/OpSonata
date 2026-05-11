@@ -35,7 +35,7 @@ function fmtDate(ts) {
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function AdminPanel(){
   const {auth}=useAuth();
-  const {matrix,roles,levels,loadPerms}=usePerms();
+  const {matrix,roles,levels,modules:apiModules,loadPerms}=usePerms();
   const [activeTab,setActiveTab]=useState("permissions");
 
   // Permissions tab state
@@ -87,11 +87,12 @@ export default function AdminPanel(){
   const [logFilterAction,setLogFilterAction]=useState("");
   const [logSearch,setLogSearch]=useState("");
 
-  // Tenant modules
+  // Tenant modules — filter the API-driven list by what this tenant has enabled
   const tenantModules = auth?.tenant?.modules || {};
-  const ALL_MODULES   = ["gps","navigation","foto_timbrata","cdr","zone","punti","percorsi","pdf_export","workshop","fuel","suppliers","costs","planning"];
   const hasModuleConfig = Object.keys(tenantModules).length > 0;
-  const modules         = hasModuleConfig ? ALL_MODULES.filter(m => tenantModules[m]) : ALL_MODULES;
+  const modules = hasModuleConfig
+    ? apiModules.filter(m => tenantModules[m])
+    : apiModules;
 
   useEffect(()=>{ if(matrix)setLocalMatrix(JSON.parse(JSON.stringify(matrix))); },[matrix]);
 

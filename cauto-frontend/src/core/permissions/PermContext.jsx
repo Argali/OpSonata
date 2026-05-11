@@ -10,11 +10,12 @@ export function PermProvider({ children }) {
   const [matrix, setMatrix] = useState(null);
   const [roles, setRoles]   = useState([]);
   const [levels, setLevels] = useState([]);
+  const [modules, setModules] = useState([]);
   const loadPerms = useCallback(() => {
     if (!auth?.token) return;
     fetch(`${API}/permissions`, { headers:{ Authorization:`Bearer ${auth.token}` } })
       .then(r=>r.json())
-      .then(r=>{ if(r.ok){ setPerms(r.my_access); setMatrix(r.matrix); setRoles(r.roles); setLevels(r.levels); } })
+      .then(r=>{ if(r.ok){ setPerms(r.my_access); setMatrix(r.matrix); setRoles(r.roles); setLevels(r.levels); setModules(r.modules||[]); } })
       .catch(()=>{});
   }, [auth?.token]);
   useEffect(() => { loadPerms(); }, [loadPerms]);
@@ -22,7 +23,7 @@ export function PermProvider({ children }) {
     const order = ["none","view","edit","full"];
     return (order.indexOf(perms[module]||"none")) >= (order.indexOf(level));
   }, [perms]);
-  return <PermContext.Provider value={{perms,matrix,roles,levels,can,loadPerms,setMatrix}}>{children}</PermContext.Provider>;
+  return <PermContext.Provider value={{perms,matrix,roles,levels,modules,can,loadPerms,setMatrix}}>{children}</PermContext.Provider>;
 }
 
 export function usePerms() { return useContext(PermContext); }
