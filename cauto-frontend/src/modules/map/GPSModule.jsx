@@ -485,6 +485,12 @@ function GPSModule({onSelectVehicle,mode="live"}){
     setNavPreviewLoading(false);
   },[myPos,auth?.token,navCosting]);
 
+  // Auto-follow position while navigating — keep user in lower third of map
+  useEffect(()=>{
+    if(navStatus!=="active"||!myPos||!liveMapRef.current)return;
+    liveMapRef.current.panTo(myPos,{animate:true,duration:0.6,noMoveStart:true});
+  },[myPos,navStatus]);
+
   // Auto-advance nav step as user moves
   useEffect(()=>{
     if(navStatus!=="active"||!myPos||!navRoute)return;
@@ -1108,8 +1114,8 @@ function GPSModule({onSelectVehicle,mode="live"}){
         )}
 
         <div ref={mapContainerRef} style={{flex:1,borderRadius:mobileFullscreen?0:12,border:mobileFullscreen?"none":`1px solid ${T.border}`,position:"relative",overflow:"hidden",display:tab==="editore"?"none":"block"}}>
-          {/* ── Mobile floating address search bar ── */}
-          {mobileFullscreen&&(
+          {/* ── Mobile floating address search bar (hidden while navigating) ── */}
+          {mobileFullscreen&&navStatus==="idle"&&(
             <MobileSearchOverlay
               searchAddr={searchAddr} setSearchAddr={setSearchAddr}
               searchLoading={searchLoading} searchFocused={searchFocused} setSearchFocused={setSearchFocused}
@@ -1282,30 +1288,72 @@ function GPSModule({onSelectVehicle,mode="live"}){
                   ))}
                 </div>
               )}
-              {/* Right-side FABs: bottom-right, stacked vertically */}
-              <div style={{position:"absolute",bottom:20,right:16,zIndex:1001,display:"flex",flexDirection:"column",gap:14,alignItems:"center"}}>
-                {/* Centre on me */}
-                {myPos&&(
-                  <button onClick={()=>liveMapRef.current?.flyTo(myPos,17)}
-                    style={{width:64,height:64,borderRadius:18,background:"rgba(13,27,42,0.92)",border:`2px solid ${alpha(T.blue,53)}`,color:T.blue,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,backdropFilter:"blur(8px)",boxShadow:"0 4px 16px rgba(0,0,0,0.5)"}}>
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-                    <span style={{fontSize:9,fontWeight:700,letterSpacing:0.4,lineHeight:1}}>CENTRA</span>
+              {/* ── Waze-style top instruction card (active navigation) ── */}
+              {navStatus==="active"&&navRoute&&(()=>{
+                const step=navRoute.maneuvers[navStep];
+                const next=navRoute.maneuvers[navStep+1];
+                const distToTurn=step?.length||0;
+                const urgentColor=distToTurn<0.15?T.orange:T.blue;
+                return(
+                  <div style={{position:"absolute",top:0,left:0,right:0,zIndex:1005,background:"rgba(8,15,28,0.97)",borderBottom:`2px solid ${urgentColor}`,backdropFilter:"blur(16px)",boxShadow:"0 6px 24px rgba(0,0,0,0.7)"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:0}}>
+                      {/* Arrow block */}
+                      <div style={{width:88,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:"14px 0",borderRight:`1px solid rgba(255,255,255,0.08)`}}>
+                        <span style={{fontSize:52,lineHeight:1,color:urgentColor,filter:`drop-shadow(0 0 12px ${urgentColor}88)`}}>
+                          {NAV_ARROW[step?.type]||"↑"}
+                        </span>
+                      </div>
+                      {/* Instruction + distance */}
+                      <div style={{flex:1,padding:"12px 14px",minWidth:0}}>
+                        <div style={{fontSize:11,color:urgentColor,fontWeight:700,fontFamily:"monospace",letterSpacing:1,marginBottom:3}}>
+                          {distToTurn<0.05?"ORA":distToTurn<0.1?"TRA POCO":`TRA ${fmtDist(distToTurn)}`}
+                        </div>
+                        <div style={{fontSize:17,fontWeight:800,color:"#f1f5f9",lineHeight:1.25,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>
+                          {step?.instruction||"Continua dritto"}
+                        </div>
+                        {next&&(
+                          <div style={{display:"flex",alignItems:"center",gap:5,marginTop:5,opacity:0.6}}>
+                            <span style={{fontSize:13}}>{NAV_ARROW[next.type]||"↑"}</span>
+                            <span style={{fontSize:11,color:"#94a3b8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                              poi {next.instruction}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* ── Arrived banner ── */}
+              {navStatus==="arrived"&&(
+                <div style={{position:"absolute",top:0,left:0,right:0,zIndex:1005,background:"rgba(6,30,16,0.97)",borderBottom:`2px solid ${T.green}`,backdropFilter:"blur(16px)",boxShadow:"0 6px 24px rgba(0,0,0,0.7)",padding:"18px 20px",textAlign:"center"}}>
+                  <div style={{fontSize:32,marginBottom:4}}>🏁</div>
+                  <div style={{fontSize:18,fontWeight:800,color:T.green}}>Destinazione raggiunta!</div>
+                  {navDest?.name&&<div style={{fontSize:13,color:"#94a3b8",marginTop:4}}>{navDest.name}</div>}
+                </div>
+              )}
+
+              {/* ── Right-side FABs (idle/setup mode) ── */}
+              {navStatus==="idle"||navStatus==="loading"?(
+                <div style={{position:"absolute",bottom:20,right:16,zIndex:1001,display:"flex",flexDirection:"column",gap:14,alignItems:"center"}}>
+                  {myPos&&(
+                    <button onClick={()=>liveMapRef.current?.flyTo(myPos,17)}
+                      style={{width:64,height:64,borderRadius:18,background:"rgba(13,27,42,0.92)",border:`2px solid ${alpha(T.blue,53)}`,color:T.blue,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,backdropFilter:"blur(8px)",boxShadow:"0 4px 16px rgba(0,0,0,0.5)"}}>
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+                      <span style={{fontSize:9,fontWeight:700,letterSpacing:0.4,lineHeight:1}}>CENTRA</span>
+                    </button>
+                  )}
+                  <button onClick={toggleSharing}
+                    style={{width:96,height:96,borderRadius:27,background:sharing?"rgba(74,222,128,0.18)":"rgba(13,27,42,0.92)",border:`3px solid ${sharing?T.green:T.border}`,color:sharing?T.green:T.textSub,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,backdropFilter:"blur(8px)",boxShadow:"0 4px 16px rgba(0,0,0,0.5)",transition:"background 0.2s,border-color 0.2s,color 0.2s"}}>
+                    <svg width="39" height="39" viewBox="0 0 24 24" fill={sharing?"currentColor":"none"} stroke="currentColor" strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
+                    <span style={{fontSize:14,fontWeight:700,letterSpacing:0.4,lineHeight:1}}>{sharing?"ATTIVO":"GPS"}</span>
                   </button>
-                )}
-                {/* Share location */}
-                <button onClick={toggleSharing}
-                  style={{width:96,height:96,borderRadius:27,background:sharing?"rgba(74,222,128,0.18)":"rgba(13,27,42,0.92)",border:`3px solid ${sharing?T.green:T.border}`,color:sharing?T.green:T.textSub,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,backdropFilter:"blur(8px)",boxShadow:"0 4px 16px rgba(0,0,0,0.5)",transition:"background 0.2s, border-color 0.2s, color 0.2s"}}>
-                  <svg width="39" height="39" viewBox="0 0 24 24" fill={sharing?"currentColor":"none"} stroke="currentColor" strokeWidth="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
-                  <span style={{fontSize:14,fontWeight:700,letterSpacing:0.4,lineHeight:1}}>{sharing?"ATTIVO":"GPS"}</span>
-                </button>
-                {/* Camera */}
-                <button onClick={()=>setShowCamera(true)}
-                  style={{width:96,height:96,borderRadius:27,background:"rgba(13,27,42,0.92)",border:`3px solid ${alpha(T.yellow,53)}`,color:T.yellow,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,backdropFilter:"blur(8px)",boxShadow:"0 4px 16px rgba(0,0,0,0.5)"}}>
-                  <svg width="39" height="39" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                  <span style={{fontSize:14,fontWeight:700,letterSpacing:0.4,lineHeight:1}}>FOTO</span>
-                </button>
-                {/* Navigation */}
-                {navStatus==="idle"||navStatus==="loading"?(
+                  <button onClick={()=>setShowCamera(true)}
+                    style={{width:96,height:96,borderRadius:27,background:"rgba(13,27,42,0.92)",border:`3px solid ${alpha(T.yellow,53)}`,color:T.yellow,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,backdropFilter:"blur(8px)",boxShadow:"0 4px 16px rgba(0,0,0,0.5)"}}>
+                    <svg width="39" height="39" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <span style={{fontSize:14,fontWeight:700,letterSpacing:0.4,lineHeight:1}}>FOTO</span>
+                  </button>
                   <button onClick={()=>{setShowNavPanel(v=>!v);setNavError(null);}}
                     style={{width:96,height:96,borderRadius:27,background:showNavPanel?"rgba(59,130,246,0.2)":"rgba(13,27,42,0.92)",border:`3px solid ${alpha(T.blue,53)}`,color:T.blue,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,backdropFilter:"blur(8px)",boxShadow:"0 4px 16px rgba(0,0,0,0.5)"}}>
                     {navStatus==="loading"
@@ -1313,54 +1361,60 @@ function GPSModule({onSelectVehicle,mode="live"}){
                       :<svg width="39" height="39" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>}
                     <span style={{fontSize:14,fontWeight:700,letterSpacing:0.4,lineHeight:1}}>NAVIGA</span>
                   </button>
-                ):(
-                  <button onClick={stopNavigation}
-                    style={{width:96,height:96,borderRadius:27,background:"rgba(248,113,113,0.18)",border:`3px solid ${T.red}`,color:T.red,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,backdropFilter:"blur(8px)",boxShadow:"0 4px 16px rgba(0,0,0,0.5)"}}>
-                    <svg width="39" height="39" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-                    <span style={{fontSize:14,fontWeight:700,letterSpacing:0.4,lineHeight:1}}>STOP</span>
+                </div>
+              ):(
+                /* Active/arrived: only re-center button on right */
+                navStatus==="active"&&myPos&&(
+                  <button onClick={()=>liveMapRef.current?.panTo(myPos,{animate:true})}
+                    style={{position:"absolute",bottom:96,right:16,zIndex:1001,width:52,height:52,borderRadius:14,background:"rgba(13,27,42,0.92)",border:`2px solid ${alpha(T.blue,53)}`,color:T.blue,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,backdropFilter:"blur(8px)",boxShadow:"0 4px 16px rgba(0,0,0,0.5)"}}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+                    <span style={{fontSize:8,fontWeight:700,letterSpacing:0.4,lineHeight:1}}>CENTRA</span>
                   </button>
-                )}
-              </div>
+                )
+              )}
 
-              {/* Navigation instruction banner */}
-              {navStatus==="active"&&navRoute&&(
-                <div style={{position:"absolute",top:12,left:64,right:64,zIndex:1003,background:"rgba(10,22,40,0.95)",border:`1px solid ${alpha(T.blue,40)}`,borderRadius:14,padding:"10px 16px",backdropFilter:"blur(12px)",boxShadow:"0 4px 20px rgba(0,0,0,0.6)"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:12}}>
-                    <span style={{fontSize:28,lineHeight:1,color:T.blue,flexShrink:0}}>{NAV_ARROW[navRoute.maneuvers[navStep]?.type]||"↑"}</span>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:14,fontWeight:700,color:T.text,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>
-                        {navRoute.maneuvers[navStep]?.instruction||"Continua dritto"}
+              {/* ── Waze-style bottom status bar (active navigation) ── */}
+              {navStatus==="active"&&navRoute&&(()=>{
+                const rem=navRoute.maneuvers.slice(navStep);
+                const remDist=rem.reduce((s,m)=>s+(m.length||0),0);
+                const remSec=rem.reduce((s,m)=>s+(m.time||0),0);
+                const eta=new Date(Date.now()+remSec*1000);
+                const etaStr=`${String(eta.getHours()).padStart(2,"0")}:${String(eta.getMinutes()).padStart(2,"0")}`;
+                return(
+                  <div style={{position:"absolute",bottom:0,left:0,right:0,zIndex:1005,background:"rgba(8,15,28,0.97)",borderTop:`1px solid rgba(255,255,255,0.08)`,backdropFilter:"blur(16px)",boxShadow:"0 -4px 20px rgba(0,0,0,0.6)",paddingBottom:"env(safe-area-inset-bottom)"}}>
+                    <div style={{display:"flex",alignItems:"center",padding:"12px 16px",gap:0}}>
+                      {/* Distance remaining */}
+                      <div style={{flex:1,textAlign:"center"}}>
+                        <div style={{fontSize:22,fontWeight:800,color:"#f1f5f9",lineHeight:1,fontFamily:"monospace"}}>{fmtDist(remDist)}</div>
+                        <div style={{fontSize:10,color:"#64748b",marginTop:2,letterSpacing:0.5}}>DISTANZA</div>
                       </div>
-                      <div style={{fontSize:11,color:T.blue,marginTop:3,fontFamily:T.mono}}>{fmtDist(navRoute.maneuvers[navStep]?.length||0)} · poi {navRoute.maneuvers[navStep+1]?NAV_ARROW[navRoute.maneuvers[navStep+1].type]||"↑":"🏁"}</div>
+                      {/* Divider */}
+                      <div style={{width:1,height:36,background:"rgba(255,255,255,0.08)",flexShrink:0}}/>
+                      {/* Time remaining */}
+                      <div style={{flex:1,textAlign:"center"}}>
+                        <div style={{fontSize:22,fontWeight:800,color:"#f1f5f9",lineHeight:1,fontFamily:"monospace"}}>{fmtTime(remSec)}</div>
+                        <div style={{fontSize:10,color:"#64748b",marginTop:2,letterSpacing:0.5}}>TEMPO</div>
+                      </div>
+                      {/* Divider */}
+                      <div style={{width:1,height:36,background:"rgba(255,255,255,0.08)",flexShrink:0}}/>
+                      {/* ETA */}
+                      <div style={{flex:1,textAlign:"center"}}>
+                        <div style={{fontSize:22,fontWeight:800,color:T.blue,lineHeight:1,fontFamily:"monospace"}}>{etaStr}</div>
+                        <div style={{fontSize:10,color:"#64748b",marginTop:2,letterSpacing:0.5}}>ARRIVO</div>
+                      </div>
+                      {/* STOP button */}
+                      <div style={{flexShrink:0,marginLeft:12}}>
+                        <button onClick={stopNavigation}
+                          style={{padding:"12px 20px",borderRadius:12,border:"none",background:"#dc2626",color:"#fff",fontFamily:"inherit",fontWeight:800,fontSize:14,cursor:"pointer",letterSpacing:0.5,boxShadow:"0 4px 12px rgba(220,38,38,0.4)"}}>
+                          STOP
+                        </button>
+                      </div>
                     </div>
-                    {(()=>{
-                      const rem=navRoute.maneuvers.slice(navStep);
-                      const remDist=rem.reduce((s,m)=>s+(m.length||0),0);
-                      const remSec=rem.reduce((s,m)=>s+(m.time||0),0);
-                      const eta=new Date(Date.now()+remSec*1000);
-                      const etaStr=`${String(eta.getHours()).padStart(2,"0")}:${String(eta.getMinutes()).padStart(2,"0")}`;
-                      return(
-                        <div style={{fontSize:10,color:T.textSub,textAlign:"right",flexShrink:0}}>
-                          <div style={{fontWeight:700,color:T.text,fontSize:12}}>{fmtDist(remDist)}</div>
-                          <div>{fmtTime(remSec)}</div>
-                          <div style={{color:T.blue,fontWeight:600,marginTop:1}}>ETA {etaStr}</div>
-                        </div>
-                      );
-                    })()}
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
-              {/* Arrived banner */}
-              {navStatus==="arrived"&&(
-                <div style={{position:"absolute",top:12,left:12,right:12,zIndex:1003,background:"rgba(74,222,128,0.15)",border:`1px solid ${T.green}`,borderRadius:14,padding:"14px 20px",backdropFilter:"blur(12px)",textAlign:"center"}}>
-                  <div style={{fontSize:22,marginBottom:4}}>🏁</div>
-                  <div style={{fontSize:15,fontWeight:700,color:T.green}}>Destinazione raggiunta!</div>
-                  {navDest?.name&&<div style={{fontSize:12,color:T.textSub,marginTop:2}}>{navDest.name}</div>}
-                </div>
-              )}
-
-              {geoError&&(
+              {geoError&&navStatus!=="active"&&(
                 <div style={{position:"absolute",bottom:20,left:12,zIndex:1001,fontSize:11,color:T.red,background:"rgba(13,27,42,0.9)",padding:"6px 12px",borderRadius:8,backdropFilter:"blur(6px)",maxWidth:"calc(100% - 100px)"}}>
                   {geoError}
                 </div>
