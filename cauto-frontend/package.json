@@ -23,6 +23,7 @@
     "leaflet-illustrate": "^0.0.3",
     "leaflet-openweathermap": "^1.0.0",
     "leaflet-toolbar": "^0.4.0-alpha.2",
+    "leaflet.heat": "^0.2.0",
     "leaflet.markercluster": "^1.5.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

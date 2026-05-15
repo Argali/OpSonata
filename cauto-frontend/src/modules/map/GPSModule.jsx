@@ -1043,31 +1043,34 @@ function GPSModule({onSelectVehicle,mode="live"}){
 
       <div style={{display:"flex",gap:16,flex:1,minHeight:0}}>
 
-        {/* ── GPS Live: collapsible left vehicle panel (hidden on mobile fullscreen) ── */}
-        {tab==="live"&&!mobileFullscreen&&(
-          <div style={{display:"flex",flexDirection:"column",flexShrink:0,transition:"width 0.2s ease",width:livePanelOpen?260:40,overflow:"hidden"}}>
-            {/* toggle tab */}
-            <div onClick={()=>setLivePanelOpen(o=>!o)}
-              style={{display:"flex",alignItems:"center",justifyContent:livePanelOpen?"space-between":"center",gap:6,padding:"8px 10px",background:T.card,border:`1px solid ${T.cardBorder}`,borderRadius:8,cursor:"pointer",marginBottom:8,flexShrink:0}}>
-              {livePanelOpen&&<span style={{fontSize:11,fontWeight:700,color:T.textSub,textTransform:"uppercase",letterSpacing:0.8}}>Veicoli</span>}
-              <span style={{fontSize:16,color:T.textSub,lineHeight:1}}>{livePanelOpen?"◀":"▶"}</span>
-            </div>
+        {tab==="editore"&&(
+          <EditoreModule
+            routes={routes} loadRoutes={loadRoutes}
+            zones={zones} setZones={setZones}
+            punti={punti} setPunti={setPunti}
+            gruppi={gruppi} setGruppi={setGruppi}
+            auth={auth}
+          />
+        )}
 
-            {livePanelOpen&&<>
-              {/* address search */}
-              <div style={{marginBottom:8,position:"relative"}}>
-                <div style={{display:"flex",gap:0,background:T.bg,border:`1px solid ${T.border}`,borderRadius:7,overflow:"hidden"}}>
+        <div style={{flex:1,borderRadius:mobileFullscreen?0:12,border:mobileFullscreen?"none":`1px solid ${T.border}`,position:"relative",overflow:"hidden",display:tab==="editore"?"none":"block"}}>
+          {/* ── Live: search + planner top bar ── */}
+          {tab==="live"&&!mobileFullscreen&&(
+            <div style={{position:"absolute",top:8,left:48,right:264,zIndex:1001,display:"flex",gap:8,alignItems:"flex-start",pointerEvents:"none"}}>
+
+              {/* Cerca indirizzo */}
+              <div style={{flex:1,pointerEvents:"auto",position:"relative",minWidth:0}}>
+                <div style={{display:"flex",background:"rgba(13,27,42,0.9)",backdropFilter:"blur(8px)",border:`1px solid ${T.border}`,borderRadius:8,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.4)"}}>
                   <input value={searchAddr} onChange={e=>setSearchAddr(e.target.value)}
                     onFocus={()=>setSearchFocused(true)}
                     onBlur={()=>setTimeout(()=>setSearchFocused(false),150)}
                     onKeyDown={e=>{if(e.key==="Enter")searchAddress(searchAddr);}}
-                    placeholder="Cerca indirizzo..." style={{flex:1,background:"transparent",border:"none",color:T.text,padding:"7px 10px",fontSize:12,fontFamily:T.font,outline:"none"}}/>
-                  <button onClick={()=>searchAddress(searchAddr)} style={{background:T.navActive,border:"none",borderLeft:`1px solid ${T.border}`,color:T.blue,padding:"7px 11px",cursor:"pointer",fontSize:13}}>
+                    placeholder="Cerca indirizzo..." style={{flex:1,background:"transparent",border:"none",color:T.text,padding:"8px 12px",fontSize:12,fontFamily:T.font,outline:"none"}}/>
+                  <button onClick={()=>searchAddress(searchAddr)} style={{background:"transparent",border:"none",borderLeft:`1px solid ${T.border}`,color:T.blue,padding:"8px 12px",cursor:"pointer",fontSize:13,flexShrink:0}}>
                     {searchLoading?"…":"🔍"}
                   </button>
                 </div>
                 {searchFocused&&(()=>{
-                  // ── Empty input: show recent searches ────────────────────
                   if(searchAddr.length<2){
                     const recent=loadRecentSearches();
                     if(!recent.length)return null;
@@ -1088,7 +1091,6 @@ function GPSModule({onSelectVehicle,mode="live"}){
                       </div>
                     );
                   }
-                  // ── Has query: show OpSonata + Photon results ─────────────
                   const q=searchAddr.toLowerCase();
                   const internal=[
                     ...cdr.filter(c=>c.lat&&c.lng&&(c.name?.toLowerCase().includes(q)||c.comune?.toLowerCase().includes(q))).map(c=>({lat:String(c.lat),lon:String(c.lng),title:c.name||"CDR",subtitle:`CDR • ${c.comune||""}`,icon:"⭐",display_name:c.name})),
@@ -1134,10 +1136,10 @@ function GPSModule({onSelectVehicle,mode="live"}){
                 })()}
               </div>
 
-              {/* ── Desktop route planner ── */}
-              <div style={{marginBottom:8,flexShrink:0}}>
+              {/* Pianifica percorso */}
+              <div style={{flex:1,pointerEvents:"auto",position:"relative",minWidth:0}}>
                 <button onClick={()=>{setPlanOpen(o=>!o);if(planOpen)clearPlan();}}
-                  style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",background:planOpen?T.navActive:T.card,border:`1px solid ${planOpen?alpha(T.blue,50):T.cardBorder}`,borderRadius:8,color:planOpen?T.blue:T.textSub,cursor:"pointer",fontSize:12,fontFamily:T.font,fontWeight:600,transition:"all 0.15s"}}>
+                  style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 12px",background:planOpen?"rgba(13,27,42,0.95)":"rgba(13,27,42,0.9)",backdropFilter:"blur(8px)",border:`1px solid ${planOpen?alpha(T.blue,50):T.border}`,borderRadius:planOpen?"8px 8px 0 0":"8px",color:planOpen?T.blue:T.textSub,cursor:"pointer",fontSize:12,fontFamily:T.font,fontWeight:600,transition:"all 0.15s",boxShadow:planOpen?"none":"0 2px 12px rgba(0,0,0,0.4)"}}>
                   <span style={{display:"flex",alignItems:"center",gap:7}}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
                     Pianifica percorso
@@ -1145,8 +1147,7 @@ function GPSModule({onSelectVehicle,mode="live"}){
                   <span style={{fontSize:11,opacity:0.7}}>{planOpen?"▲":"▼"}</span>
                 </button>
                 {planOpen&&(
-                  <div style={{marginTop:7,display:"flex",flexDirection:"column",gap:7}}>
-                    {/* Profile selector */}
+                  <div style={{position:"absolute",top:"100%",left:0,right:0,background:"rgba(13,27,42,0.95)",backdropFilter:"blur(8px)",border:`1px solid ${alpha(T.blue,50)}`,borderTop:"none",borderRadius:"0 0 8px 8px",padding:10,display:"flex",flexDirection:"column",gap:7,boxShadow:"0 8px 24px rgba(0,0,0,0.45)"}}>
                     <div style={{display:"flex",gap:3}}>
                       {NAV_PROFILES.map(p=>(
                         <button key={p.id} onClick={()=>setNavCosting(p.id)}
@@ -1156,30 +1157,25 @@ function GPSModule({onSelectVehicle,mode="live"}){
                         </button>
                       ))}
                     </div>
-                    {/* From */}
                     <PlanInput label="Da" query={planFromQuery}
                       setQuery={q=>{setPlanFromQuery(q);setPlanFrom(null);setPlanResult(null);if(planPolyRef.current){planPolyRef.current.remove();planPolyRef.current=null;}}}
                       results={planFromResults} selected={!!planFrom}
                       onSelect={r=>{setPlanFrom({lat:parseFloat(r.lat),lng:parseFloat(r.lon),name:r.title||r.display_name});setPlanFromQuery(r.title||r.display_name);setPlanFromResults([]);setPlanResult(null);}}
                       onUseMyPos={myPos?()=>{setPlanFrom({lat:myPos[0],lng:myPos[1],name:"Posizione attuale"});setPlanFromQuery("Posizione attuale");setPlanFromResults([]);}:null}
                     />
-                    {/* To */}
                     <PlanInput label="A" query={planToQuery}
                       setQuery={q=>{setPlanToQuery(q);setPlanTo(null);setPlanResult(null);if(planPolyRef.current){planPolyRef.current.remove();planPolyRef.current=null;}}}
                       results={planToResults} selected={!!planTo}
                       onSelect={r=>{setPlanTo({lat:parseFloat(r.lat),lng:parseFloat(r.lon),name:r.title||r.display_name});setPlanToQuery(r.title||r.display_name);setPlanToResults([]);setPlanResult(null);}}
                     />
-                    {/* Calculate */}
                     <button onClick={calculatePlan} disabled={!planFrom||!planTo||planLoading}
                       style={{padding:"8px",background:planFrom&&planTo?T.navActive:T.bg,border:`1px solid ${planFrom&&planTo?alpha(T.blue,50):T.border}`,borderRadius:7,color:planFrom&&planTo?T.blue:T.textDim,cursor:planFrom&&planTo&&!planLoading?"pointer":"not-allowed",fontSize:12,fontFamily:T.font,fontWeight:600,display:"flex",alignItems:"center",justifyContent:"center",gap:6,transition:"all 0.15s"}}>
                       {planLoading&&<span style={{display:"inline-block",width:11,height:11,border:`2px solid ${T.blue}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.7s linear infinite"}}/>}
                       {planLoading?"Calcolo percorso…":"Calcola percorso"}
                     </button>
                     {planError&&<div style={{fontSize:11,color:T.red,padding:"6px 9px",background:"#1a0808",borderRadius:6,border:"1px solid #3a1a1a"}}>{planError}</div>}
-                    {/* Result summary + maneuvers */}
                     {planResult&&(
                       <div style={{background:T.card,border:`1px solid ${alpha(T.blue,33)}`,borderRadius:9,overflow:"hidden"}}>
-                        {/* Summary */}
                         <div style={{display:"flex",alignItems:"center",padding:"10px 12px",gap:0,borderBottom:`1px solid ${T.border}`}}>
                           <div style={{flex:1,textAlign:"center"}}>
                             <div style={{fontSize:16,fontWeight:800,color:T.blue,lineHeight:1,fontFamily:"monospace"}}>{fmtDist(planResult.distance)}</div>
@@ -1192,8 +1188,7 @@ function GPSModule({onSelectVehicle,mode="live"}){
                           </div>
                           <button onClick={clearPlan} style={{background:"transparent",border:"none",color:T.textDim,cursor:"pointer",fontSize:16,padding:"0 10px",lineHeight:1,flexShrink:0}} title="Cancella percorso">×</button>
                         </div>
-                        {/* Maneuver list */}
-                        <div style={{maxHeight:220,overflowY:"auto"}}>
+                        <div style={{maxHeight:200,overflowY:"auto"}}>
                           {planResult.maneuvers.map((m,i)=>(
                             <div key={i} style={{display:"flex",alignItems:"flex-start",gap:9,padding:"8px 12px",borderBottom:i<planResult.maneuvers.length-1?`1px solid ${T.border}`:"none"}}>
                               <span style={{fontSize:17,flexShrink:0,lineHeight:1.3,minWidth:20,textAlign:"center"}}>{NAV_ARROW[m.type]||"↑"}</span>
@@ -1210,114 +1205,59 @@ function GPSModule({onSelectVehicle,mode="live"}){
                 )}
               </div>
 
-              {/* ── Segnalazione territorio (visible after address picked) ── */}
-              {selectedSearchResult&&(
-                <div style={{background:T.card,border:`1px solid ${alpha(T.orange,27)}`,borderRadius:10,padding:"12px 13px",marginBottom:10,flexShrink:0}}>
-                  {/* header */}
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                    <div style={{display:"flex",alignItems:"center",gap:7}}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={T.orange} strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                      <span style={{fontSize:11,fontWeight:700,color:T.orange,textTransform:"uppercase",letterSpacing:0.8}}>Segnalazione</span>
-                    </div>
-                    <button onClick={()=>{setSelectedSearchResult(null);setSegTerritorio({tipo:"",note:""});setSegTerritorioMsg(null);}}
-                      style={{background:"transparent",border:"none",color:T.textDim,cursor:"pointer",fontSize:15,lineHeight:1,padding:2}}>×</button>
-                  </div>
-                  {/* address chip */}
-                  <div style={{fontSize:10,color:T.textDim,background:T.bg,borderRadius:6,padding:"5px 8px",marginBottom:10,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                    📍 {selectedSearchResult.address}
-                  </div>
-                  {/* tipo bullets */}
-                  <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:10}}>
-                    {[
-                      {id:"mancata_raccolta", label:"Mancata raccolta", color:T.red},
-                      {id:"abbandono",        label:"Abbandoni",        color:T.orange},
-                      {id:"da_pulire",        label:"Da pulire",        color:T.yellow},
-                      {id:"altro",            label:"Altro",            color:T.textSub},
-                    ].map(opt=>{
-                      const active=segTerritorio.tipo===opt.id;
-                      return(
-                        <button key={opt.id} onClick={()=>setSegTerritorio(s=>({...s,tipo:opt.id,note:opt.id!=="altro"?"":s.note}))}
-                          style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:7,border:`1px solid ${active?opt.color+"88":T.border}`,background:active?opt.color+"18":T.bg,cursor:"pointer",textAlign:"left",fontFamily:T.font,transition:"all 0.12s"}}>
-                          <div style={{width:12,height:12,borderRadius:"50%",border:`2px solid ${active?opt.color:T.textDim}`,background:active?opt.color:"transparent",flexShrink:0,transition:"all 0.12s"}}/>
-                          <span style={{fontSize:12,color:active?opt.color:T.textSub,fontWeight:active?700:400}}>{opt.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {/* note field (always shown for "altro", optional otherwise) */}
-                  {segTerritorio.tipo&&(
-                    <textarea value={segTerritorio.note} onChange={e=>setSegTerritorio(s=>({...s,note:e.target.value}))}
-                      placeholder={segTerritorio.tipo==="altro"?"Descrivi il problema…":"Note aggiuntive (opzionale)…"}
-                      rows={2}
-                      style={{width:"100%",background:T.bg,border:`1px solid ${segTerritorio.tipo==="altro"&&!segTerritorio.note.trim()?T.red+"66":T.border}`,borderRadius:7,color:T.text,padding:"7px 9px",fontSize:11,fontFamily:T.font,outline:"none",resize:"vertical",boxSizing:"border-box",marginBottom:8}}/>
-                  )}
-                  {/* feedback */}
-                  {segTerritorioMsg&&(
-                    <div style={{fontSize:11,color:segTerritorioMsg.ok?T.green:T.red,marginBottom:8,padding:"5px 8px",background:segTerritorioMsg.ok?"#0a1a0a":"#1a0a0a",borderRadius:6,border:`1px solid ${segTerritorioMsg.ok?T.green+"44":T.red+"44"}`}}>
-                      {segTerritorioMsg.text}
-                    </div>
-                  )}
-                  <button onClick={submitSegTerritorio} disabled={segTerritorioSending||!segTerritorio.tipo}
-                    style={{width:"100%",padding:"8px",background:segTerritorio.tipo?T.navActive:T.bg,border:`1px solid ${segTerritorio.tipo?T.orange+"66":T.border}`,borderRadius:7,color:segTerritorio.tipo?T.orange:T.textDim,cursor:segTerritorio.tipo&&!segTerritorioSending?"pointer":"not-allowed",fontSize:12,fontFamily:T.font,fontWeight:600,display:"flex",alignItems:"center",justifyContent:"center",gap:6,transition:"all 0.12s"}}>
-                    {segTerritorioSending&&<span style={{display:"inline-block",width:10,height:10,border:`2px solid ${T.orange}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.7s linear infinite"}}/>}
-                    {segTerritorioSending?"Invio…":"Invia segnalazione"}
-                  </button>
+            </div>
+          )}
+
+          {/* ── Segnalazione territorio overlay (desktop, after address search) ── */}
+          {tab==="live"&&!mobileFullscreen&&selectedSearchResult&&(
+            <div style={{position:"absolute",top:52,left:48,zIndex:1000,width:300,background:"rgba(13,27,42,0.92)",backdropFilter:"blur(8px)",border:`1px solid ${alpha(T.orange,27)}`,borderRadius:10,padding:"12px 13px",boxShadow:"0 6px 24px rgba(0,0,0,0.5)"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:7}}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={T.orange} strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  <span style={{fontSize:11,fontWeight:700,color:T.orange,textTransform:"uppercase",letterSpacing:0.8}}>Segnalazione</span>
+                </div>
+                <button onClick={()=>{setSelectedSearchResult(null);setSegTerritorio({tipo:"",note:""});setSegTerritorioMsg(null);}}
+                  style={{background:"transparent",border:"none",color:T.textDim,cursor:"pointer",fontSize:15,lineHeight:1,padding:2}}>×</button>
+              </div>
+              <div style={{fontSize:10,color:T.textDim,background:T.bg,borderRadius:6,padding:"5px 8px",marginBottom:10,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                📍 {selectedSearchResult.address}
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:10}}>
+                {[
+                  {id:"mancata_raccolta", label:"Mancata raccolta", color:T.red},
+                  {id:"abbandono",        label:"Abbandoni",        color:T.orange},
+                  {id:"da_pulire",        label:"Da pulire",        color:T.yellow},
+                  {id:"altro",            label:"Altro",            color:T.textSub},
+                ].map(opt=>{
+                  const active=segTerritorio.tipo===opt.id;
+                  return(
+                    <button key={opt.id} onClick={()=>setSegTerritorio(s=>({...s,tipo:opt.id,note:opt.id!=="altro"?"":s.note}))}
+                      style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:7,border:`1px solid ${active?opt.color+"88":T.border}`,background:active?opt.color+"18":T.bg,cursor:"pointer",textAlign:"left",fontFamily:T.font,transition:"all 0.12s"}}>
+                      <div style={{width:12,height:12,borderRadius:"50%",border:`2px solid ${active?opt.color:T.textDim}`,background:active?opt.color:"transparent",flexShrink:0,transition:"all 0.12s"}}/>
+                      <span style={{fontSize:12,color:active?opt.color:T.textSub,fontWeight:active?700:400}}>{opt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {segTerritorio.tipo&&(
+                <textarea value={segTerritorio.note} onChange={e=>setSegTerritorio(s=>({...s,note:e.target.value}))}
+                  placeholder={segTerritorio.tipo==="altro"?"Descrivi il problema…":"Note aggiuntive (opzionale)…"}
+                  rows={2}
+                  style={{width:"100%",background:T.bg,border:`1px solid ${segTerritorio.tipo==="altro"&&!segTerritorio.note.trim()?T.red+"66":T.border}`,borderRadius:7,color:T.text,padding:"7px 9px",fontSize:11,fontFamily:T.font,outline:"none",resize:"vertical",boxSizing:"border-box",marginBottom:8}}/>
+              )}
+              {segTerritorioMsg&&(
+                <div style={{fontSize:11,color:segTerritorioMsg.ok?T.green:T.red,marginBottom:8,padding:"5px 8px",background:segTerritorioMsg.ok?"#0a1a0a":"#1a0a0a",borderRadius:6,border:`1px solid ${segTerritorioMsg.ok?T.green+"44":T.red+"44"}`}}>
+                  {segTerritorioMsg.text}
                 </div>
               )}
+              <button onClick={submitSegTerritorio} disabled={segTerritorioSending||!segTerritorio.tipo}
+                style={{width:"100%",padding:"8px",background:segTerritorio.tipo?T.navActive:T.bg,border:`1px solid ${segTerritorio.tipo?T.orange+"66":T.border}`,borderRadius:7,color:segTerritorio.tipo?T.orange:T.textDim,cursor:segTerritorio.tipo&&!segTerritorioSending?"pointer":"not-allowed",fontSize:12,fontFamily:T.font,fontWeight:600,display:"flex",alignItems:"center",justifyContent:"center",gap:6,transition:"all 0.12s"}}>
+                {segTerritorioSending&&<span style={{display:"inline-block",width:10,height:10,border:`2px solid ${T.orange}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.7s linear infinite"}}/>}
+                {segTerritorioSending?"Invio…":"Invia segnalazione"}
+              </button>
+            </div>
+          )}
 
-              {/* filters */}
-              <div style={{display:"flex",gap:6,marginBottom:8}}>
-                <input value={filterComune} onChange={e=>setFilterComune(e.target.value)} placeholder="Comune…"
-                  style={{flex:1,background:T.bg,border:`1px solid ${T.border}`,borderRadius:6,color:T.text,padding:"6px 8px",fontSize:11,fontFamily:T.font,outline:"none"}}/>
-                <input value={filterSettore} onChange={e=>setFilterSettore(e.target.value)} placeholder="Settore…"
-                  style={{flex:1,background:T.bg,border:`1px solid ${T.border}`,borderRadius:6,color:T.text,padding:"6px 8px",fontSize:11,fontFamily:T.font,outline:"none"}}/>
-              </div>
-              {(filterComune||filterSettore)&&<div style={{fontSize:10,color:T.textDim,marginBottom:6,paddingLeft:2}}>
-                {(vehicles||[]).filter(v=>
-                  (!filterComune||v.name?.toLowerCase().includes(filterComune.toLowerCase())||(v.comune||"").toLowerCase().includes(filterComune.toLowerCase()))&&
-                  (!filterSettore||(v.sector||"").toLowerCase().includes(filterSettore.toLowerCase()))
-                ).length} veicoli mostrati
-              </div>}
-
-              {/* vehicle cards */}
-              <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:7}}>
-                {(vehicles||[])
-                  .filter(v=>
-                    (!filterComune||v.name?.toLowerCase().includes(filterComune.toLowerCase())||(v.comune||"").toLowerCase().includes(filterComune.toLowerCase()))&&
-                    (!filterSettore||(v.sector||"").toLowerCase().includes(filterSettore.toLowerCase()))
-                  )
-                  .map(v=>(
-                  <div key={v.id} style={{background:T.card,border:`1px solid ${T.cardBorder}`,borderRadius:9,padding:"11px 12px",boxShadow:"0 1px 4px rgba(0,0,0,0.15)"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:3}}>
-                      <span style={{fontSize:12,fontWeight:700,color:T.text,lineHeight:1.2}}>{v.name}</span>
-                      <span style={{fontSize:9,padding:"2px 7px",borderRadius:9,background:statusColor[v.status]+"22",color:statusColor[v.status],fontWeight:700,flexShrink:0,marginLeft:4}}>{statusLabel[v.status]}</span>
-                    </div>
-                    <div style={{fontSize:10,color:T.textSub,marginBottom:6}}>{v.plate}{v.sector?` · ${v.sector}`:""}</div>
-                    {v.fuel_pct!=null&&<>
-                      <div style={{height:3,background:T.border,borderRadius:2,marginBottom:2}}>
-                        <div style={{height:"100%",width:`${v.fuel_pct}%`,background:v.fuel_pct<20?T.red:T.green,borderRadius:2}}/>
-                      </div>
-                      <div style={{fontSize:9,color:v.fuel_pct<20?T.red:T.textDim,marginBottom:6}}>⛽ {v.fuel_pct}%</div>
-                    </>}
-                    <button onClick={()=>onSelectVehicle(v)} style={{width:"100%",background:T.bg,border:`1px solid ${T.border}`,borderRadius:5,color:T.text,padding:"5px",cursor:"pointer",fontSize:11,fontFamily:T.font}}>Dettaglio →</button>
-                  </div>
-                ))}
-              </div>
-            </>}
-          </div>
-        )}
-
-        {tab==="editore"&&(
-          <EditoreModule
-            routes={routes} loadRoutes={loadRoutes}
-            zones={zones} setZones={setZones}
-            punti={punti} setPunti={setPunti}
-            gruppi={gruppi} setGruppi={setGruppi}
-            auth={auth}
-          />
-        )}
-
-        <div style={{flex:1,borderRadius:mobileFullscreen?0:12,border:mobileFullscreen?"none":`1px solid ${T.border}`,position:"relative",overflow:"hidden",display:tab==="editore"?"none":"block"}}>
           {(tab==="live"||tab==="editor")&&<FleetMap
             vehicles={vehicles} routes={routes||[]} visibleRoutes={visibleRoutes}
             zones={tab==="live"?zones.filter(z=>visibleZones[z.id]!==false):[]} punti={tab==="live"?punti.filter(p=>visiblePunti[p.id]!==false):[]}

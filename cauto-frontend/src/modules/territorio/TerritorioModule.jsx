@@ -6,6 +6,7 @@ import { useApi } from "@/hooks/useApi";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { formatSegDate, extractComune } from "@/utils/geoUtils";
 import TabBar from "@/shared/ui/TabBar";
+import TerritorioMap from "./TerritorioMap";
 
 const TIPO_META = {
   mancata_raccolta: { label: "Mancata raccolta", color: "#f87171", bg: "rgba(248,113,113,0.12)" },
@@ -484,6 +485,7 @@ function SegnalazioniTab({ segnalazioni, auth, refetch }) {
 // ── Main module ───────────────────────────────────────────────────────────────
 const TABS = [
   { id: "segnalazioni", label: "Segnalazioni", icon: "M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01" },
+  { id: "mappa",        label: "Mappa",        icon: "M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z M8 2v16 M16 6v16" },
   { id: "galleria",     label: "Galleria",     icon: "M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8" },
 ];
 
@@ -524,6 +526,9 @@ export default function TerritorioModule() {
 
       {activeTab === "segnalazioni" && (
         <SegnalazioniTab segnalazioni={segnalazioni} auth={auth} refetch={refetch} />
+      )}
+      {activeTab === "mappa" && (
+        <TerritorioMap segnalazioni={segnalazioni} />
       )}
       {activeTab === "galleria" && (
         <GalleriaTab segnalazioni={segnalazioni} />
