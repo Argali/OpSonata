@@ -15,7 +15,7 @@ export function PermProvider({ children }) {
     if (!auth?.token) return;
     fetch(`${API}/permissions`, { headers:{ Authorization:`Bearer ${auth.token}` } })
       .then(r=>r.json())
-      .then(r=>{ if(r.ok){ setPerms(r.my_access); setMatrix(r.matrix); setRoles(r.roles); setLevels(r.levels); setModules(r.modules||[]); } })
+      .then(r=>{ if(r.ok){ setPerms(r.my_access||{}); setMatrix(r.matrix||{}); setRoles(r.roles||[]); setLevels(r.levels||[]); setModules(r.modules||[]); } })
       .catch(()=>{});
   }, [auth?.token]);
   useEffect(() => { loadPerms(); }, [loadPerms]);
