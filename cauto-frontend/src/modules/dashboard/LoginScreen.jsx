@@ -47,8 +47,8 @@ function LoginScreen({ authError = null }){
           <div style={{display:"inline-flex",alignItems:"center",gap:14}}>
             <FleetLogo size={52}/>
             <div style={{textAlign:"left"}}>
-              <div style={{fontSize:26,fontWeight:800,color:T.text,letterSpacing:-0.5}}><span style={{color:T.green}}>Op</span>Watch</div>
-              <div style={{fontSize:11,color:T.textSub,letterSpacing:1.5,textTransform:"uppercase",marginTop:1}}>Operation Command Center</div>
+              <div style={{fontSize:26,fontWeight:800,color:T.text,letterSpacing:-0.5}}><span style={{color:T.green}}>OpS</span>onata</div>
+              <div style={{fontSize:11,color:T.textSub,letterSpacing:1.5,textTransform:"uppercase",marginTop:1}}>Operation Platform</div>
             </div>
           </div>
         </div>

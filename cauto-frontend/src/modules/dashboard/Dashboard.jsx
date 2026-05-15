@@ -123,7 +123,7 @@ export default function Dashboard() {
         <div style={{ background: T.sidebar, borderBottom: `1px solid ${T.border}`, padding: "0 16px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, zIndex: 100, backdropFilter: "blur(10px)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <FleetLogo size={26} />
-            <div style={{ fontSize: 14, fontWeight: 800, color: T.text, letterSpacing: -0.3 }}>Fleet<span style={{ color: T.green }}>CC</span></div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: T.text, letterSpacing: -0.3 }}><span style={{ color: T.green }}>OpS</span>onata</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {currentNav && <span style={{ fontSize: 13, fontWeight: 600, color: T.textSub }}>{selectedVehicle ? selectedVehicle.name : currentNav.label}</span>}
@@ -266,8 +266,7 @@ export default function Dashboard() {
           <FleetLogo size={32} />
           {sidebarOpen && (
             <div style={{ minWidth: 0, opacity: sidebarOpen ? 1 : 0, transition: "opacity 140ms" }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: T.text, letterSpacing: -0.3, whiteSpace: "nowrap" }}><span style={{ color: T.green }}>Op</span>Watch</div>
-              <div style={{ fontSize: 9, color: T.textDim, letterSpacing: 1.2, textTransform: "uppercase", marginTop: 1 }}>Command Center</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: T.text, letterSpacing: -0.3, whiteSpace: "nowrap" }}><span style={{ color: T.green }}>OpS</span>onata</div>
             </div>
           )}
         </div>
