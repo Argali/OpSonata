@@ -29,10 +29,10 @@ const app = new Hono();
 app.use("*", logger());
 
 app.use("*", async (c, next) => {
-  // FRONTEND_URL may be a comma-separated list for multi-origin support.
-  // Falls back to the production URL — "credentials: true" forbids the wildcard "*".
-  const raw = c.env.FRONTEND_URL || "https://app.opsonata.com";
-  const allowed = raw.split(",").map(s => s.trim()).filter(Boolean);
+  // Production origin is always allowed. FRONTEND_URL (comma-separated) adds extras
+  // (e.g. a staging URL or localhost). "credentials: true" forbids the wildcard "*".
+  const extra = (c.env.FRONTEND_URL || "").split(",").map(s => s.trim()).filter(Boolean);
+  const allowed = ["https://app.opsonata.com", ...extra];
   const corsHandler = cors({
     origin:         (origin) => allowed.includes(origin) ? origin : allowed[0],
     allowHeaders:   ["Authorization", "Content-Type"],
