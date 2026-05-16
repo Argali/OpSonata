@@ -21,7 +21,7 @@ crons = ["0 6 * * *"]   # Daily 6am UTC — PM scheduler + license expiry check
 
 [vars]
 ENVIRONMENT        = "production"
-GPS_PROVIDER       = "geotab"          # "mock" | "geotab"
+GPS_PROVIDER       = "mock"            # "mock" | "geotab"
 GEOTAB_SERVER      = "my.geotab.com"
 GEOTAB_DATABASE    = "demo_opsonata_demo"
 # Secrets to add in Cloudflare dashboard (Workers → opsonata-worker → Settings → Variables):
