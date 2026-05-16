@@ -63,7 +63,7 @@ export default function AdminPanel(){
   const savePonti=async(next)=>{
     setSavingPonti(true);setPontiMsg(null);
     try{
-      const r=await fetch(`${API}/workshop/ponti`,{method:"PUT",headers:{Authorization:`Bearer ${auth.token}`,"Content-Type":"application/json"},body:JSON.stringify({ponti:next})});
+      const r=await fetch(`${API}/workshop/ponti`,{method:"PATCH",headers:{Authorization:`Bearer ${auth.token}`,"Content-Type":"application/json"},body:JSON.stringify({ponti:next})});
       const d=await r.json();
       if(d.ok){setPonti(d.data);refetchPonti();setPontiMsg({ok:true,text:"Ponti aggiornati"});}
       else setPontiMsg({ok:false,text:d.error});

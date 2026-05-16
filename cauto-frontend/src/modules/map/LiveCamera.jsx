@@ -303,14 +303,24 @@ export default function LiveCamera({ position, auth, vehicles = [], onClose }) {
       });
       const d1 = await r1.json();
       if (!d1.ok) throw new Error(d1.error || "Errore creazione segnalazione");
-      const fd = new FormData();
-      fd.append("photo", blob, "photo.jpg");
-      if (note.trim()) fd.append("note", note.trim());
-      const r2 = await fetch(`${API}/segnalazioni-territorio/${d1.data.id}/intervento`, {
-        method: "POST", headers: { Authorization: `Bearer ${auth.token}` }, body: fd,
-      });
-      const d2 = await r2.json();
-      if (!d2.ok) throw new Error(d2.error || "Errore upload foto");
+      const upFd = new FormData();
+      upFd.append("file", blob, "photo.jpg");
+      const upRes = await fetch(`${API}/upload`, { method: "POST", headers: { Authorization: `Bearer ${auth.token}` }, body: upFd });
+      const upData = await upRes.json();
+      if (upData.ok) {
+        await fetch(`${API}/segnalazioni-territorio/${d1.data.id}/photos`, {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${auth.token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ photos: [upData.url] }),
+        });
+      }
+      if (note.trim()) {
+        await fetch(`${API}/segnalazioni-territorio/${d1.data.id}/interventions`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${auth.token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ description: note.trim() }),
+        });
+      }
       done();
     } catch (e) { setErrMsg(e.message); setStatus("error"); } finally { setBusy(false); }
   }

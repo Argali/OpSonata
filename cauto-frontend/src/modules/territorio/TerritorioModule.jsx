@@ -256,13 +256,23 @@ function TerritorioDetail({ segnalazione: s, auth, onClose, onRefresh }) {
     if (!note.trim() && !photo) { setErr("Aggiungi una nota o una foto"); return; }
     setSending(true); setErr(null);
     try {
-      const fd = new FormData();
-      if (note.trim()) fd.append("note", note.trim());
-      if (photo) fd.append("photo", photo);
-      const r = await fetch(`${API}/segnalazioni-territorio/${s.id}/intervento`, {
+      if (photo) {
+        const upFd = new FormData();
+        upFd.append("file", photo);
+        const upRes = await fetch(`${API}/upload`, { method: "POST", headers: { Authorization: `Bearer ${auth.token}` }, body: upFd });
+        const upData = await upRes.json();
+        if (upData.ok) {
+          await fetch(`${API}/segnalazioni-territorio/${s.id}/photos`, {
+            method: "PATCH",
+            headers: { Authorization: `Bearer ${auth.token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ photos: [upData.url] }),
+          });
+        }
+      }
+      const r = await fetch(`${API}/segnalazioni-territorio/${s.id}/interventions`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${auth.token}` },
-        body: fd,
+        headers: { Authorization: `Bearer ${auth.token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ description: note.trim() }),
       });
       const d = await r.json();
       if (!d.ok) throw new Error(d.error || "Errore");
