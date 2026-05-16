@@ -1164,7 +1164,7 @@ function GPSModule({onSelectVehicle,mode="live"}){
               </div>
 
               {/* Pianifica percorso */}
-              <div style={{flex:1,pointerEvents:"auto",position:"relative",minWidth:0}}>
+              <div style={{flex:"0 0 auto",width:170,pointerEvents:"auto",position:"relative",minWidth:0}}>
                 <button onClick={()=>{setPlanOpen(o=>!o);if(planOpen)clearPlan();}}
                   style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 12px",background:planOpen?"rgba(13,27,42,0.95)":"rgba(13,27,42,0.9)",backdropFilter:"blur(8px)",border:`1px solid ${planOpen?alpha(T.blue,50):T.border}`,borderRadius:planOpen?"8px 8px 0 0":"8px",color:planOpen?T.blue:T.textSub,cursor:"pointer",fontSize:12,fontFamily:T.font,fontWeight:600,transition:"all 0.15s",boxShadow:planOpen?"none":"0 2px 12px rgba(0,0,0,0.4)"}}>
                   <span style={{display:"flex",alignItems:"center",gap:7}}>
