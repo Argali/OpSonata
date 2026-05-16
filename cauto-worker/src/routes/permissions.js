@@ -46,6 +46,7 @@ permissions.patch("/", rbac("admin", "full"), async (c) => {
       );
     }
   }
+  if (!stmts.length) return c.json({ ok: true });
   await c.env.DB.batch(stmts);
   return c.json({ ok: true });
 });

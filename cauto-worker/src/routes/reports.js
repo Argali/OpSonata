@@ -36,11 +36,11 @@ function csvResponse(text, filename) {
 reports.get("/summary", async (c) => {
   const user = c.get("user");
 
-  const [costs, fuelByMonth, workshopByStatus, segnalazioniByStatus] = await Promise.all([
-    c.env.DB.prepare("SELECT * FROM monthly_costs WHERE tenant_id = ? ORDER BY month DESC LIMIT 12").bind(user.tenant_id).all(),
-    c.env.DB.prepare("SELECT strftime('%Y-%m', date) AS month, ROUND(SUM(liters),2) AS liters, ROUND(SUM(cost_eur),2) AS cost FROM fuel_entries WHERE tenant_id = ? GROUP BY month ORDER BY month DESC LIMIT 12").bind(user.tenant_id).all(),
-    c.env.DB.prepare("SELECT status, COUNT(*) AS count FROM work_orders WHERE tenant_id = ? GROUP BY status").bind(user.tenant_id).all(),
-    c.env.DB.prepare("SELECT status, COUNT(*) AS count FROM segnalazioni WHERE tenant_id = ? GROUP BY status").bind(user.tenant_id).all(),
+  const [costs, fuelByMonth, workshopByStatus, segnalazioniByStatus] = await c.env.DB.batch([
+    c.env.DB.prepare("SELECT * FROM monthly_costs WHERE tenant_id = ? ORDER BY month DESC LIMIT 12").bind(user.tenant_id),
+    c.env.DB.prepare("SELECT strftime('%Y-%m', date) AS month, ROUND(SUM(liters),2) AS liters, ROUND(SUM(cost_eur),2) AS cost FROM fuel_entries WHERE tenant_id = ? GROUP BY month ORDER BY month DESC LIMIT 12").bind(user.tenant_id),
+    c.env.DB.prepare("SELECT status, COUNT(*) AS count FROM work_orders WHERE tenant_id = ? GROUP BY status").bind(user.tenant_id),
+    c.env.DB.prepare("SELECT status, COUNT(*) AS count FROM segnalazioni WHERE tenant_id = ? GROUP BY status").bind(user.tenant_id),
   ]);
 
   return c.json({
@@ -116,10 +116,10 @@ reports.get("/workshop", async (c) => {
 reports.get("/fleet", async (c) => {
   const user = c.get("user");
 
-  const [fuel, orders, segs] = await Promise.all([
-    c.env.DB.prepare("SELECT * FROM fuel_entries WHERE tenant_id = ? ORDER BY date DESC").bind(user.tenant_id).all(),
-    c.env.DB.prepare("SELECT * FROM work_orders  WHERE tenant_id = ? ORDER BY opened_at DESC").bind(user.tenant_id).all(),
-    c.env.DB.prepare("SELECT * FROM segnalazioni WHERE tenant_id = ? ORDER BY created_at DESC").bind(user.tenant_id).all(),
+  const [fuel, orders, segs] = await c.env.DB.batch([
+    c.env.DB.prepare("SELECT * FROM fuel_entries WHERE tenant_id = ? ORDER BY date DESC").bind(user.tenant_id),
+    c.env.DB.prepare("SELECT * FROM work_orders  WHERE tenant_id = ? ORDER BY opened_at DESC").bind(user.tenant_id),
+    c.env.DB.prepare("SELECT * FROM segnalazioni WHERE tenant_id = ? ORDER BY created_at DESC").bind(user.tenant_id),
   ]);
 
   const fuelCSV = toCSV([

@@ -21,12 +21,12 @@ const ALL_MODULES = [
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-function requireSuperadmin(c, next) {
+async function requireSuperadmin(c, next) {
   const user = c.get("user");
   if (!user) return c.json({ ok: false, error: "Non autenticato" }, 401);
   if (user.role !== "superadmin")
     return c.json({ ok: false, error: "Accesso riservato al superadmin" }, 403);
-  return next();
+  await next();
 }
 
 // Parse modules column — stored as JSON object, may be legacy '[]' array
@@ -116,10 +116,9 @@ superadmin.patch("/tenants/:id/active", async (c) => {
 
 // GET /analytics — aggregate counts from D1
 superadmin.get("/analytics", async (c) => {
-  const [tenantRows, userRows, modRows] = await Promise.all([
-    c.env.DB.prepare("SELECT id, name, active, modules, updated_at FROM tenants").all(),
-    c.env.DB.prepare("SELECT tenant_id, active FROM users").all(),
-    c.env.DB.prepare("SELECT modules, active FROM tenants WHERE active = 1").all(),
+  const [tenantRows, userRows] = await c.env.DB.batch([
+    c.env.DB.prepare("SELECT id, name, active, modules, updated_at FROM tenants"),
+    c.env.DB.prepare("SELECT tenant_id, active, role FROM users"),
   ]);
 
   const tenants       = tenantRows.results;
@@ -136,10 +135,7 @@ superadmin.get("/analytics", async (c) => {
 
   // Module adoption across active tenants
   const moduleAdoption = ALL_MODULES.map(mod => {
-    const count = modRows.results.filter(t => {
-      const m = parseMods(t.modules);
-      return m[mod] === true;
-    }).length;
+    const count = activeTenants.filter(t => parseMods(t.modules)[mod] === true).length;
     const total = activeTenants.length;
     return { module: mod, count, total, pct: total ? Math.round(count / total * 100) : 0 };
   });
