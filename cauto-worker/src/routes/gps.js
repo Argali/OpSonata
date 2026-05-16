@@ -71,7 +71,9 @@ async function gtRefreshSession(env) {
 }
 
 async function gtCall(env, method, params) {
-  let creds = await env.SESSIONS.get(GT_SESSION_KEY, "json") || await gtRefreshSession(env);
+  let creds = await env.SESSIONS.get(GT_SESSION_KEY, "json");
+  if (creds?.server === "ThisServer") { await env.SESSIONS.delete(GT_SESSION_KEY).catch(()=>{}); creds = null; }
+  creds = creds || await gtRefreshSession(env);
   const doCall = async (c) => {
     const res = await fetch(`https://${c.server || env.GEOTAB_SERVER}/apiv1`, {
       method: "POST",
