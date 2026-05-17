@@ -70,7 +70,7 @@ app.route("/api/costs",            costs);
 app.route("/api/permissions",      permissions);
 app.route("/api/admin/users",      usersAdmin);
 app.route("/api/segnalazioni",     segnalazioni);
-app.route("/api/territorio",       territorio);
+app.route("/api/segnalazioni-territorio", territorio);
 app.route("/api/reports",          reports);
 app.route("/api/planning",         planning);
 app.route("/api/upload",           upload);
